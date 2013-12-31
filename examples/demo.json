@@ -1,0 +1,25 @@
+{
+    "title": "Der Ring des Nibelungen",
+    "genre": "Opera",
+    "pieces":
+    [
+        {
+    	    "title": "Siegfried",
+    	    "cast":
+    	    {
+    		"Siegfried": "Wolfgang Windgassen",
+    		"Mime": "Gerhard Stolze",
+    		"Brünnhilde": "Birgit Nilsson"
+    	    }
+        },
+	{
+	    "title": "Götterdämmerung",
+	    "cast":
+	    {
+		"Brünnhilde": "Birgit Nilsson",
+		"Siegfried": "Wolfgang Windgassen",
+		"Hagen": "Gottlob Frick"
+	    }
+	}
+    ]
+}
