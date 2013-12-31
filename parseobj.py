@@ -32,18 +32,11 @@ def foreach(iter_visitor):
 def for_key(key, value_visitor):
     class ForKey(ParseDecorator):
         def get_grammar(self):
-            sibling_grammar = super(ForKey, self).get_grammar()
-            if sibling_grammar:
-                return "{{{key}: {child}, {sibling}}}".format(
-                    sibling=sibling_grammar,
-                    key=key,
-                    child=_get_grammar_of_thing(value_visitor)
-                )
-            else:
-                return "{{{key}: {child}, ...}}".format(
-                    key=key,
-                    child=_get_grammar_of_thing(value_visitor)
-                )
+            return "{{{key}: {child}, {sibling}}}".format(
+                sibling=super(ForKey, self).get_grammar() or "...",
+                key=key,
+                child=_get_grammar_of_thing(value_visitor)
+            )
 
         def post_access(self, target):
             value_visitor(target[key])
