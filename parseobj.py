@@ -1,8 +1,21 @@
-import json
+
+UNKNOWN = "<?>"
 
 
 class ParseError(RuntimeError):
     pass
+
+
+def prevent_siblings(f):
+    def _check(self, *args, **kwargs):
+        if self._has_siblings():
+            raise NotImplementedError(
+                "Cannot yet give grammar for cases "
+                "where there are multiple iterations "
+                "over the same dataset, possibly each "
+                "spawning descents.")
+        return f(self, *args, **kwargs)
+    return _check
 
 
 def _get_grammar_of_thing(thing, **kwargs):
@@ -21,46 +34,26 @@ def _getvalue(target, key):
 
 def foreach(iter_visitor):
     class Foreach(ParseDecorator):
+
+        @prevent_siblings
         def get_grammar(self, is_first_sibling=True):
-            child_grammar = _get_grammar_of_thing(iter_visitor) or "<?>"
             if is_first_sibling:
-                return "[{child}, ...]".format(
-                    child=child_grammar
-                    )
-            if self._has_siblings():
-                raise NotImplementedError(
-                    "Cannot yet give grammar for cases "
-                    "where there are multiple iterations "
-                    "over the same dataset, possibly each "
-                    "spawning descents.")
+                return [_get_grammar_of_thing(iter_visitor) or UNKNOWN]
 
         def post_access(self, target):
             for element in target:
                 iter_visitor(element)
+
     return Foreach
 
 
 def for_key(key, value_visitor):
     class ForKey(ParseDecorator):
         def get_grammar(self, is_first_sibling=True):
-            if is_first_sibling:
-                return self._get_grammar_as_first_sibling()
-            else:
-                return self._get_grammar_as_later_sibling()
-
-        def _get_grammar_as_first_sibling(self):
-            return "{{{key}: {child}, {sibling}}}".format(
-                sibling=self._get_grammar_of_decorated() or "...",
-                key=key,
-                child=_get_grammar_of_thing(value_visitor) or "<?>",
-            )
-
-        def _get_grammar_as_later_sibling(self):
-            return "{key}: {child}, {sibling}".format(
-                sibling=self._get_grammar_of_decorated() or "...",
-                key=key,
-                child=_get_grammar_of_thing(value_visitor) or "<?>",
-            )
+            grammar = {key: _get_grammar_of_thing(value_visitor) or UNKNOWN}
+            if self._has_siblings():
+                grammar.update(self._get_grammar_of_decorated())
+            return grammar
 
         def post_access(self, target):
             value_visitor(target[key])
@@ -69,11 +62,13 @@ def for_key(key, value_visitor):
 
 def foreach_item(iter_visitor):
     class ForEachItem(ParseDecorator):
+
+        @prevent_siblings
         def get_grammar(self, is_first_sibling=True):
-            return "{{{child}, ...}}".format(
-                sibling=self._get_grammar_of_decorated(),
-                child=_get_grammar_of_thing(iter_visitor) or "<?>"
-            )
+            grammar = {}
+            grammar.update(
+                _get_grammar_of_thing(iter_visitor) or {UNKNOWN: UNKNOWN})
+            return grammar
 
         def post_access(self, target):
             for key, value in target.items():
@@ -95,7 +90,8 @@ class ParseDecorator(object):
         return _get_grammar_of_thing(self._f, is_first_sibling=False)
 
     def print_grammar(self):
-        print(self.get_grammar())
+        import json
+        print(json.dumps(self.get_grammar(), indent=4))
 
     def __call__(self, target, *args, **kwargs):
         res = self._f(target, *args, **kwargs)
