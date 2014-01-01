@@ -2,7 +2,7 @@
 from __future__ import print_function
 import traceback
 
-from parseobj import for_key, foreach, ObjParseError, ObjSyntaxError
+from parseobj import for_key, foreach, ObjSyntaxError
 
 heading_counter = 0
 
