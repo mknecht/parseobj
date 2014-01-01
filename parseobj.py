@@ -4,10 +4,6 @@ UNKNOWN = "<?>"
 ROOT = "<root>"
 
 
-class ObjParseError(RuntimeError):
-    pass
-
-
 class ObjSyntaxError(RuntimeError):
     pass
 
