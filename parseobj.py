@@ -34,7 +34,7 @@ def _get_grammar_of_thing(thing, **kwargs):
 
 def for_key(key, value_visitor):
     class ForKey(ExecManager):
-        expected = u"Expected dict-like object with key '{}'".format(key)
+        expected = u"Expected dict-like object with key '{}'.".format(key)
 
         @prepend_path_to_exceptions
         def do_visit(self, *args, **kwargs):
