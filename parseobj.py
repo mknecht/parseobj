@@ -3,9 +3,99 @@ import json
 UNKNOWN = "<?>"
 ROOT = "<root>"
 
+ITERABLE, DICT = range(2)
+
 
 class ObjSyntaxError(RuntimeError):
     pass
+
+
+def isdecorator(f):
+    return isinstance(f, ParseDecorator)
+
+
+class DictProduction(object):
+    def get_grammar(self, components):
+        grammar = {}
+        for c in components:
+            token = c.grammar_class().token
+            if token is not None:
+                grammar[token[0]] = token[1]
+        return grammar
+
+
+class IterableProduction(object):
+    def get_grammar(self, components):
+        grammar = []
+        for c in components:
+            token = c.grammar_class().token
+            if token is not None:
+                grammar.append(token)
+        return grammar
+
+
+def choose_production(components):
+    prod = IterableProduction
+    for c in components:
+        if c.grammar_class().tokentype == DICT:
+            prod = DictProduction
+    return prod
+
+
+class ExecManager(object):
+    def __init__(self, target, path_to_self=ROOT):
+        self._path_to_self = path_to_self
+        self._target = target
+        self._target_path = None
+
+    def do_visit(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @property
+    def path_to_self(self):
+        return self._path_to_self
+
+    def _make_target_path(self):
+        return (
+            (self._path_to_self)
+            + (self._target_path or u"")
+        )
+
+
+class ParseDecorator(object):
+    exec_class = None
+
+    def __init__(self, f):
+        self._f = f
+        self._inner_siblings = []
+        self._outer_siblings = []
+        if isdecorator(f):
+            self._inner_siblings.append(f)
+            self._inner_siblings.extend(f.inner_siblings)
+            f.add_outer_sibling(self)
+
+    def __call__(self, target, *args, **kwargs):
+        path_to_self = kwargs.pop("path_to_self", ROOT)
+        res = self._f(target, *args, **kwargs)
+        self.exec_class(target, path_to_self=path_to_self).do_visit(
+            *args, **kwargs)
+        return res
+
+    @property
+    def inner_siblings(self):
+        return self._inner_siblings
+
+    def add_outer_sibling(self, sibling):
+        self._outer_siblings.append(sibling)
+        if isdecorator(self._f):
+            self._f.add_outer_sibling(sibling)
+
+    def get_grammar(self):
+        components = self._outer_siblings[:] + [self] + self._inner_siblings[:]
+        return choose_production(components)().get_grammar(components)
+
+    def print_grammar(self):
+        print(json.dumps(self.get_grammar(), indent=4))
 
 
 def prepend_path_to_exceptions(f):
@@ -34,7 +124,7 @@ def for_key(key, value_visitor):
 
         @prepend_path_to_exceptions
         def do_visit(self, *args, **kwargs):
-            self._target_path = '["{}"]'.format(key)
+            self._target_path = u'["{}"]'.format(key)
             self._verify_syntax()
             if isinstance(value_visitor, ParseDecorator):
                 kwargs["path_to_self"] = self._make_target_path()
@@ -60,12 +150,21 @@ def for_key(key, value_visitor):
                     u"No dict-like object. {}".format(key, self.expected)
                 )
 
-        @classmethod
-        def get_grammar(cls, grammar_of_decorated, is_first_sibling=True):
-            grammar = {key: _get_grammar_of_thing(value_visitor) or UNKNOWN}
-            grammar.update(grammar_of_decorated or {})
-            return grammar
-    return get_parse_decorator(ForKey)
+    class ForKeyGrammar(object):
+        @property
+        def token(self):
+            child = _get_grammar_of_thing(value_visitor)
+            return key, child if child is not None else UNKNOWN
+
+        @property
+        def tokentype(self):
+            return DICT
+
+    class ForKeyDecorator(ParseDecorator):
+        exec_class = ForKey
+        grammar_class = ForKeyGrammar
+
+    return ForKeyDecorator
 
 
 def foreach(iterable_or_visitor, visitor=None):
@@ -79,14 +178,10 @@ def foreach(iterable_or_visitor, visitor=None):
         def do_visit(self, *args, **kwargs):
             self._verify_syntax()
             for idx, element in enumerate(self._target):
-                self._target_path = '["{}"]'.format(idx)
+                self._target_path = u'["{}"]'.format(idx)
                 if isinstance(iter_visitor, ParseDecorator):
                     kwargs["path_to_self"] = self._make_target_path()
                 iter_visitor(element, *args, **kwargs)
-
-        @classmethod
-        def get_grammar(cls, grammar_of_decorated, is_first_sibling=True):
-            return [_get_grammar_of_thing(iter_visitor) or UNKNOWN]
 
         def _verify_syntax(self):
             if self._target is None:
@@ -105,30 +200,36 @@ def foreach(iterable_or_visitor, visitor=None):
                     u"No iterable. {expected}".format(expected=self.expected)
                 )
 
+    class ForeachGrammar(object):
+        @property
+        def token(self):
+            return _get_grammar_of_thing(iter_visitor)
+
+        @property
+        def tokentype(self):
+            return ITERABLE
+
+    class ForeachDecorator(ParseDecorator):
+        exec_class = Foreach
+        grammar_class = ForeachGrammar
+
     if iterable:
         Foreach(iterable).do_visit()
     else:
-        return get_parse_decorator(Foreach)
+        return ForeachDecorator
 
 
 def foreach_item(iter_visitor):
-    class ForEachItem(ExecManager):
+    class ForeachItem(ExecManager):
         expected = (u"Expected dict-like object with at least one item "
                     "key-value pair.")
-
-        @classmethod
-        def get_grammar(self, grammar_of_decorated, is_first_sibling=True):
-            grammar = {}
-            grammar.update(
-                _get_grammar_of_thing(iter_visitor) or {UNKNOWN: UNKNOWN})
-            return grammar
 
         @prepend_path_to_exceptions
         def do_visit(self, *args, **kwargs):
             self._verify_syntax()
             for key, value in self._target.items():
-                self._target_path = '["{}"]'.format(key)
-                if isinstance(iter_visitor, ParseDecorator):
+                self._target_path = u'["{}"]'.format(key)
+                if isdecorator(iter_visitor):
                     kwargs["path_to_self"] = self._make_target_path()
                 iter_visitor(key, value, *args, **kwargs)
 
@@ -149,64 +250,18 @@ def foreach_item(iter_visitor):
                     u"No dict-like object. {expected}".format(
                         expected=self.expected)
                 )
-    return ForEachItem
 
-
-class ExecManager(object):
-    def __init__(self, target, path_to_self=ROOT):
-        self._path_to_self = path_to_self
-        self._target = target
-        self._target_path = None
-
-    def do_visit(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    @classmethod
-    def get_grammar(cls,  grammar_of_decorated):
-        raise NotImplementedError()
-
-    @property
-    def path_to_self(self):
-        return self._path_to_self
-
-    def _make_target_path(self):
-        return (
-            (self._path_to_self)
-            + (self._target_path or u"")
-        )
-
-
-class ParseDecorator(object):
-    pass
-
-
-def get_parse_decorator(exec_class):
-    class TokenSpecificDecorator(ParseDecorator):
-        def __init__(self, f):
-            self._f = f
-
-        def __call__(self, target, *args, **kwargs):
-            path_to_self = kwargs.pop("path_to_self", ROOT)
-            res = self._f(target, *args, **kwargs)
-            exec_class(target, path_to_self=path_to_self).do_visit(
-                *args, **kwargs)
-            return res
+    class ForeachItemGrammar(object):
+        @property
+        def token(self):
+            return _get_grammar_of_thing(iter_visitor)
 
         @property
-        def parent(self):
-            return self._parent
+        def tokentype(self):
+            return DICT
 
-        @parent.setter
-        def parent(self, new_parent):
-            self._parent = new_parent
+    class ForeachItemDecorator(ParseDecorator):
+        exec_class = ForeachItem
+        grammar_class = ForeachItemGrammar
 
-        def get_grammar(self):
-            return exec_class.get_grammar(
-                grammar_of_decorated=self._get_grammar_of_decorated())
-
-        def _get_grammar_of_decorated(self):
-            return _get_grammar_of_thing(self._f)
-
-        def print_grammar(self):
-            print(json.dumps(self.get_grammar(), indent=4))
-    return TokenSpecificDecorator
+    return ForeachItemDecorator
