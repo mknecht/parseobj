@@ -52,12 +52,12 @@ heading("Get context for your error messages")
 
 
 def raise_error(value):
-    if value == 3:
+    if value == "c":
         raise ValueError("Value is unusable!")
 
 
 try:
-    foreach([1, 2, 3, 4], raise_error)
+    foreach("abcd", raise_error)
 except ValueError, e:
     traceback.print_exc()
 

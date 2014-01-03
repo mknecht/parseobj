@@ -93,13 +93,18 @@ class ParseDecorator(object):
 
 def prepend_path_to_exceptions(f):
     def _prepend_path(self, *args, **kwargs):
-        try:
-            return f(self, *args, **kwargs)
-        except StandardError, e:
+        def amend_msg(prefix_func, e):
             e.args = (u"{}: {}".format(
-                self.path_to_self,
+                prefix_func(),
                 e.message or u"(No error message)"),
             )
+        try:
+            return f(self, *args, **kwargs)
+        except ObjSyntaxError, e:
+            amend_msg(lambda: self.path_to_self, e)
+            raise
+        except StandardError, e:
+            amend_msg(self._make_target_path, e)
             raise
     return _prepend_path
 
@@ -171,7 +176,7 @@ def foreach(iterable_or_visitor, visitor=None):
         def do_visit(self, *args, **kwargs):
             self._verify_syntax()
             for idx, element in enumerate(self._target):
-                self._target_path = u'["{}"]'.format(idx)
+                self._target_path = u'[{}]'.format(idx)
                 if isinstance(iter_visitor, ParseDecorator):
                     kwargs["path_to_self"] = self._make_target_path()
                 iter_visitor(element, *args, **kwargs)
