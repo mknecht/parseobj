@@ -30,20 +30,25 @@ def print_uppercase_count(name):
     print(len([c for c in name if c.isupper()]))
 
 
+@foreach(print_uppercase_count)
+def visit_roles(roles):
+    pass
+
+
+@for_key("roles", visit_roles)
 @for_key("name", print)
-@for_key("roles", foreach(print_uppercase_count)(lambda x: None))
-def parse_opera(opera):
-    print("The opera has two attributes")
+def visit_opera(opera):
+    pass
 
 
-parse_opera(dutchman)
+visit_opera(dutchman)
 
 
 ###############################
 # ERROR HANDLING
 heading("Get precise error messages what is wrong with the input.")
 try:
-    parse_opera({"name": "Das Rheingold"})
+    visit_opera({"name": "Das Rheingold"})
 except ObjSyntaxError:
     traceback.print_exc()
 
@@ -66,7 +71,7 @@ except ValueError, e:
 # Get the grammar.
 heading("Get a pseudo-grammar for the expected input")
 
-parse_opera.print_grammar()
+visit_opera.print_grammar()
 
 
 ###############################
