@@ -89,24 +89,24 @@ Make parseobj print a pseudo-grammar.
 
 ### 0.1
 
-- [ ] for_value
-- [ ] support optional elements
-- [ ] support more
-- [ ] Direct usability of all decorator functions
-- [ ] Grammar: Indicate that other/more elements in collections/dicts are possible.
-- [ ] Grammar: Consider multiple passes over list
-- [ ] Proper README ;)
-- [ ] proper logging (under defined logger)
-- [ ] API documentation
-- [ ] Test suite
-- [ ] Travis integration
-- [ ] readthedocs integration
-- [ ] installable using setup.py
+ - [ ] for_value
+ - [ ] support optional elements
+ - [ ] support more
+ - [ ] Direct usability of all decorator functions
+ - [ ] Grammar: Indicate that other/more elements in collections/dicts are possible.
+ - [ ] Grammar: Consider multiple passes over list
+ - [ ] Proper README ;)
+ - [ ] proper logging (under defined logger)
+ - [ ] API documentation
+ - [ ] Test suite
+ - [ ] Travis integration
+ - [ ] readthedocs integration
+ - [ ] installable using setup.py
 
 ### later
 
-- [ ] make exception extension configurable
-- [ ] support for **visitor objects**
-- [ ] consider lengthy values when output
-- [ ] support for **check-only decorators**
-- [ ] support (document) **extensibility**
+ - [ ] make exception extension configurable
+ - [ ] support for **visitor objects**
+ - [ ] consider lengthy values when output
+ - [ ] support for **check-only decorators**
+ - [ ] support (document) **extensibility**
