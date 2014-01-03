@@ -29,10 +29,16 @@ def print_uppercase_count(name):
     print(len([c for c in name if c.isupper()]))
 
 
-@for_key("roles", foreach(print_uppercase_count)(lambda x: None))
+@foreach(print_uppercase_count)
+def visit_roles(roles):
+    pass
+
+
+@for_key("roles", visit_roles)
 @for_key("name", print)
 def visit_opera(opera):
     pass
+
 
 visit_opera(dutchman)
 ```
