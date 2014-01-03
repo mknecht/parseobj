@@ -68,11 +68,9 @@ class ParseDecorator(object):
     def __init__(self, f):
         self._f = f
         self._inner_siblings = []
-        self._outer_siblings = []
         if isdecorator(f):
             self._inner_siblings.append(f)
             self._inner_siblings.extend(f.inner_siblings)
-            f.add_outer_sibling(self)
 
     def __call__(self, target, *args, **kwargs):
         path_to_self = kwargs.pop("path_to_self", ROOT)
@@ -85,13 +83,8 @@ class ParseDecorator(object):
     def inner_siblings(self):
         return self._inner_siblings
 
-    def add_outer_sibling(self, sibling):
-        self._outer_siblings.append(sibling)
-        if isdecorator(self._f):
-            self._f.add_outer_sibling(sibling)
-
     def get_grammar(self):
-        components = self._outer_siblings[:] + [self] + self._inner_siblings[:]
+        components = [self] + self._inner_siblings[:]
         return choose_production(components)().get_grammar(components)
 
     def print_grammar(self):
