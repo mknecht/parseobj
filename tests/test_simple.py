@@ -19,6 +19,8 @@ class TestForeach(object):
             visit_collection(col)
             self.fail("Exception expected")
         except ObjSyntaxError:
+            # We're evaluating lazily, hence the collection will be visited,
+            # before the missing elements are noticed.
             self.assert_calls(called_with, visit_collection, [col])
             self.assert_calls(called_with, visit_element)
 
