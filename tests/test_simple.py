@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import izip
 
-from parseobj import foreach, ObjSyntaxError
+from parseobj import for_key, foreach, ObjSyntaxError
 
 
 def assert_calls(recorder, func, *list_of_args):
@@ -64,3 +64,75 @@ class TestForeach(object):
         visit_collection(col)
         assert_calls(called_with, visit_collection, [col])
         assert_calls(called_with, visit_element, [1], [2], [3], [4])
+
+
+class TestForKey(object):
+    def test_given_empty_dict_expecting_exception(self):
+        called_with = defaultdict(lambda: [])
+
+        def visit_value(*args):
+            called_with[visit_value].append(list(args))
+
+        @for_key("first", visit_value)
+        def visit_dict(*args):
+            called_with[visit_dict].append(list(args))
+
+        d = {}
+        try:
+            visit_dict(d)
+            self.fail("Exception expected, because dict cannot be empty")
+        except ObjSyntaxError:
+            # We're evaluating lazily, hence the collection will be visited,
+            # before the missing elements are noticed.
+            assert_calls(called_with, visit_dict, [d])
+            assert_calls(called_with, visit_value)
+
+    def test_given_full_dict_but_key_missing_expecting_exception(self):
+        called_with = defaultdict(lambda: [])
+
+        def visit_value(*args):
+            called_with[visit_value].append(list(args))
+
+        @for_key("first", visit_value)
+        def visit_dict(*args):
+            called_with[visit_dict].append(list(args))
+
+        d = {"second": 2, "third": 3}
+        try:
+            visit_dict(d)
+            self.fail("Exception expected, because dict cannot be empty")
+        except ObjSyntaxError:
+            # We're evaluating lazily, hence the collection will be visited,
+            # before the missing elements are noticed.
+            assert_calls(called_with, visit_dict, [d])
+            assert_calls(called_with, visit_value)
+
+    def test_given_correct_key_expecting_functions_called(self):
+        called_with = defaultdict(lambda: [])
+
+        def visit_value(*args):
+            called_with[visit_value].append(list(args))
+
+        @for_key("first", visit_value)
+        def visit_dict(*args):
+            called_with[visit_dict].append(list(args))
+
+        d = {"first": 1}
+        visit_dict(d)
+        assert_calls(called_with, visit_dict, [d])
+        assert_calls(called_with, visit_value, [1])
+
+    def test_given_many_keys_expecting_only_correct_key_considered(self):
+        called_with = defaultdict(lambda: [])
+
+        def visit_value(*args):
+            called_with[visit_value].append(list(args))
+
+        @for_key("first", visit_value)
+        def visit_dict(*args):
+            called_with[visit_dict].append(list(args))
+
+        d = {"first": 1, "second": 2, "third": 3}
+        visit_dict(d)
+        assert_calls(called_with, visit_dict, [d])
+        assert_calls(called_with, visit_value, [1])
