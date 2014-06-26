@@ -21,6 +21,7 @@ def visit_castmember(key):
     pass
 
 
+@for_key(u"premiered", print, optional=True)
 @for_key(u"title", print)
 @for_key(u"cast", visit_castmember)
 def count_opera(opera):
