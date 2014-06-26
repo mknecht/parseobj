@@ -136,3 +136,21 @@ class TestForKey(object):
         visit_dict(d)
         assert_calls(called_with, visit_dict, [d])
         assert_calls(called_with, visit_value, [1])
+
+    def test_given_optional_key_and_empty_dict_expecting_nop(self):
+        called_with = defaultdict(lambda: [])
+
+        def visit_value(*args):
+            called_with[visit_value].append(list(args))
+
+        @for_key("first", visit_value, optional=True)
+        def visit_dict(*args):
+            called_with[visit_dict].append(list(args))
+
+        d = {}
+        try:
+            visit_dict(d)
+            assert_calls(called_with, visit_dict, [d])
+            assert_calls(called_with, visit_value)
+        except ObjSyntaxError:
+            self.fail("No exception expected, because key is optional")

@@ -116,9 +116,10 @@ def _get_grammar_of_thing(thing, **kwargs):
         return None
 
 
-def for_key(key, value_visitor):
+def for_key(key, value_visitor, optional=False):
     class ForKey(ExecManager):
-        expected = u"Expected dict-like object with key '{}'.".format(key)
+        expected = u"Expected dict-like object with {}key '{}'.".format(
+            "optional " if optional else "", key)
 
         @prepend_path_to_exceptions
         def do_visit(self, *args, **kwargs):
@@ -126,7 +127,8 @@ def for_key(key, value_visitor):
             self._verify_syntax()
             if isinstance(value_visitor, ParseDecorator):
                 kwargs["path_to_self"] = self._make_target_path()
-            value_visitor(self._target[key], *args, **kwargs)
+            if key in self._target:
+                value_visitor(self._target[key], *args, **kwargs)
 
         def _verify_syntax(self):
             if self._target is None:
@@ -134,7 +136,7 @@ def for_key(key, value_visitor):
                     u"Nothing here. {}".format(self.expected)
                 )
             try:
-                if not key in self._target:
+                if not key in self._target and not optional:
                     raise ObjSyntaxError(
                         u"Missing key '{missing}', "
                         "found only: {available}. {expected}".format(
