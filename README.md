@@ -103,7 +103,6 @@ Make *parseobj* print a pseudo-grammar.
 
 ### 0.1
 
-- for_value
 - support optional elements
 - support more
 - Direct usability of all decorator functions
