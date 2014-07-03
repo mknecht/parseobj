@@ -26,6 +26,7 @@ correct = {
     },
 }
 
+
 class Person(object):
     def __init__(self):
         self.email = None
@@ -56,10 +57,10 @@ def savePerson(input):
 
     return _savePerson(input)
 
-print(parsePerson(correct))
-print(parsePerson(optional))
+print(savePerson(correct))
+print(savePerson(optional))
 try:
-    parsePerson(incorrect)
+    savePerson(incorrect)
 except ObjSyntaxError, e:
     print(e.message)
     e.print_grammar()
