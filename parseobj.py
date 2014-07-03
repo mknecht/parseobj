@@ -14,24 +14,26 @@ def isdecorator(f):
     return isinstance(f, ParseDecorator)
 
 
+def get_tokens(components):
+    for c in components:
+        token = c.grammar_class().token
+        if token is not None:
+            yield (token)
+
+
+class Production(object):
+    def get_grammar(self, components):
+        raise NotImplemented()
+
+
 class DictProduction(object):
     def get_grammar(self, components):
-        grammar = {}
-        for c in components:
-            token = c.grammar_class().token
-            if token is not None:
-                grammar[token[0]] = token[1]
-        return grammar
+        return {token[0]: token[1] for token in get_tokens(components)}
 
 
 class IterableProduction(object):
     def get_grammar(self, components):
-        grammar = []
-        for c in components:
-            token = c.grammar_class().token
-            if token is not None:
-                grammar.append(token)
-        return grammar
+        return [token for token in get_tokens(components)]
 
 
 def choose_production(components):
