@@ -110,6 +110,7 @@ Make *parseobj* print a pseudo-grammar.
 - Grammar: Consider multiple passes over list
 - Proper README ;)
 - proper logging (under defined logger)
+- Generate random(?) minimal example
 - API documentation
 - Test suite
 - Travis integration
